@@ -1,0 +1,39 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model House {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  url       String
+  status    String   @default("ok") // ok, warning, critical
+  notes     String?
+  clones    Clone[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Clone {
+  id        String   @id @default(uuid()) @db.Uuid
+  houseId   String   @db.Uuid
+  name      String
+  url       String
+  status    String   @default("ok") // ok, warning, critical
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  house House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+}
+
+model NoCloneHouse {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  url       String
+  createdAt DateTime @default(now())
+}

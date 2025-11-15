@@ -1,0 +1,10 @@
+# Gerenciador de Clones - Robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://bet-clones.vercel.app/sitemap.xml
+
+# Crawl-delay (opcional, útil para não sobrecarregar o servidor)
+Crawl-delay: 1
