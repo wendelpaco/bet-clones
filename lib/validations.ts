@@ -18,6 +18,15 @@ export const cloneSchema = z.object({
   notes: z.string().max(500, "Notas muito longas").optional(),
 });
 
+// Schema para atualização de clone (permite mudar de grupo)
+export const cloneUpdateSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  url: z.string().url("URL inválida"),
+  status: statusEnum.default("ok"),
+  notes: z.string().max(500, "Notas muito longas").optional(),
+  houseId: z.string().uuid("ID da casa inválido").optional(),
+});
+
 export const noCloneHouseSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
   url: z.string().url("URL inválida"),
@@ -25,6 +34,7 @@ export const noCloneHouseSchema = z.object({
 
 export type HouseInput = z.infer<typeof houseSchema>;
 export type CloneInput = z.infer<typeof cloneSchema>;
+export type CloneUpdateInput = z.infer<typeof cloneUpdateSchema>;
 export type NoCloneHouseInput = z.infer<typeof noCloneHouseSchema>;
 export type Status = z.infer<typeof statusEnum>;
 

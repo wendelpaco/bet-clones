@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,8 +37,14 @@ import { toast } from "@/hooks/use-toast";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Status } from "@/lib/validations";
 
+type House = {
+  id: string;
+  name: string;
+};
+
 type Clone = {
   id: string;
+  houseId: string;
   name: string;
   url: string;
   status: string;
@@ -44,18 +57,44 @@ export function CloneActions({ clone }: { clone: Clone }) {
   const [url, setUrl] = useState(clone.url);
   const [status, setStatus] = useState<Status>(clone.status as Status);
   const [notes, setNotes] = useState(clone.notes || "");
+  const [houseId, setHouseId] = useState(clone.houseId);
+  const [houses, setHouses] = useState<House[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Carregar lista de casas quando o modal abrir
+  useEffect(() => {
+    if (editOpen) {
+      fetch("/api/houses")
+        .then((res) => res.json())
+        .then((data) => setHouses(data))
+        .catch(() => {
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar a lista de casas",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [editOpen]);
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
+    const changedHouse = houseId !== clone.houseId;
+
     try {
       const response = await fetch(`/api/clones/${clone.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, url, status, notes: notes || undefined }),
+        body: JSON.stringify({
+          name,
+          url,
+          status,
+          notes: notes || undefined,
+          houseId: changedHouse ? houseId : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -66,11 +105,19 @@ export function CloneActions({ clone }: { clone: Clone }) {
 
       toast({
         title: "Clone atualizado!",
-        description: "As alterações foram salvas.",
+        description: changedHouse
+          ? "O clone foi movido para outro grupo."
+          : "As alterações foram salvas.",
       });
 
       setEditOpen(false);
-      router.refresh();
+
+      // Se mudou de casa, redirecionar para a nova casa
+      if (changedHouse) {
+        router.push(`/houses/${houseId}`);
+      } else {
+        router.refresh();
+      }
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -124,6 +171,7 @@ export function CloneActions({ clone }: { clone: Clone }) {
             setUrl(clone.url);
             setStatus(clone.status as Status);
             setNotes(clone.notes || "");
+            setHouseId(clone.houseId);
             setEditOpen(true);
           }}
         >
@@ -156,6 +204,21 @@ export function CloneActions({ clone }: { clone: Clone }) {
                   onChange={(e) => setUrl(e.target.value)}
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-house">Casa (Grupo)</Label>
+                <Select value={houseId} onValueChange={setHouseId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a casa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {houses.map((house) => (
+                      <SelectItem key={house.id} value={house.id}>
+                        {house.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <StatusSelect value={status} onValueChange={setStatus} />
               <div className="grid gap-2">

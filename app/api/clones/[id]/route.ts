@@ -1,74 +1,88 @@
-import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
-import { cloneSchema } from "@/lib/validations"
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { cloneUpdateSchema } from "@/lib/validations";
 
 type Params = {
   params: Promise<{
-    id: string
-  }>
-}
+    id: string;
+  }>;
+};
 
 // PUT /api/clones/[id] - Atualiza um clone
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
-    const { id } = await params
-    const body = await request.json()
+    const { id } = await params;
+    const body = await request.json();
 
-    const validation = cloneSchema.safeParse(body)
+    const validation = cloneUpdateSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
         { error: validation.error.errors[0].message },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
+    }
+
+    // Se está mudando de grupo, validar se a nova house existe
+    if (validation.data.houseId) {
+      const house = await prisma.house.findUnique({
+        where: { id: validation.data.houseId },
+      });
+
+      if (!house) {
+        return NextResponse.json(
+          { error: "Casa não encontrada" },
+          { status: 404 },
+        );
+      }
     }
 
     const clone = await prisma.clone.update({
       where: { id },
-      data: validation.data
-    })
+      data: validation.data,
+    });
 
-    return NextResponse.json(clone)
+    return NextResponse.json(clone);
   } catch (error: any) {
-    console.error('Error updating clone:', error)
+    console.error("Error updating clone:", error);
 
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return NextResponse.json(
         { error: "Clone não encontrado" },
-        { status: 404 }
-      )
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(
       { error: "Erro ao atualizar clone" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
 
 // DELETE /api/clones/[id] - Deleta um clone
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const { id } = await params
+    const { id } = await params;
 
     await prisma.clone.delete({
-      where: { id }
-    })
+      where: { id },
+    });
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting clone:', error)
+    console.error("Error deleting clone:", error);
 
-    if (error.code === 'P2025') {
+    if (error.code === "P2025") {
       return NextResponse.json(
         { error: "Clone não encontrado" },
-        { status: 404 }
-      )
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(
       { error: "Erro ao deletar clone" },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }
